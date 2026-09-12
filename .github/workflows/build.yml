@@ -38,7 +38,10 @@ jobs:
         run: |
           PROJECT_DIR=$(find project -name settings.gradle.kts -o -name settings.gradle | head -1 | xargs dirname)
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-
+      - name: Fix Java and Kotlin JVM target
+        run: |
+          sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$PROJECT_DIR/app/build.gradle.kts"
+          sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$PROJECT_DIR/app/build.gradle.kts"و
       - name: Build APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: gradle :app:assembleDebug --no-daemon
