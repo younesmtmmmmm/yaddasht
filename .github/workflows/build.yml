@@ -1,6 +1,6 @@
 name: Build Android APK
 
-"on":
+on:
   workflow_dispatch:
   push:
     branches:
@@ -15,54 +15,33 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Java 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '8.10'
+        uses: android-actions/setup-android@v3
 
       - name: Extract project
         run: |
-          mkdir project
-          unzip -q *.zip -d project
+          ZIP=$(find . -maxdepth 1 -type f -name '*اصلاح‌شده.zip' | head -n 1)
+          echo "Using: $ZIP"
+          unzip -q "$ZIP" -d project
 
       - name: Find project folder
         run: |
-          PROJECT_DIR=$(find project \( -name settings.gradle.kts -o -name settings.gradle \) -print -quit | xargs dirname)
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          echo "Project directory: $PROJECT_DIR"
-
-      - name: Fix all Java and Kotlin JVM targets
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          echo "Searching Gradle files..."
-          find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -print
-
-          echo "Replacing Java 1.8 with Java 17..."
-          find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i \
-            -e 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' \
-            -e 's/VERSION_1_8/VERSION_17/g' \
-            -e 's/jvmTarget[[:space:]]*=[[:space:]]*"1.8"/jvmTarget = "17"/g' \
-            -e "s/jvmTarget[[:space:]]*=[[:space:]]*'1.8'/jvmTarget = '17'/g" \
-            {} \;
-
-          echo "Remaining 1.8 references:"
-          grep -RIn "1.8\|VERSION_1_8" --include="build.gradle" --include="build.gradle.kts" . || true
+          PROJECT=$(find project -name settings.gradle.kts -printf '%h\n' | head -n 1)
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
       - name: Build APK
-        working-directory: ${{ env.PROJECT_DIR }}
+        working-directory: ${{ env.PROJECT }}
         run: |
-          gradle :app:assembleDebug --no-daemon
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yaddasht-apk
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          name: Yaddasht-APK
+          path: ${{ env.PROJECT }}/app/build/outputs/apk/debug/app-debug.apk
