@@ -35,31 +35,26 @@ jobs:
 
       - name: Find project folder
         run: |
-          PROJECT_DIR=$(find project -name settings.gradle.kts -o -name settings.gradle | head -1 | xargs dirname)
+          PROJECT_DIR=$(find project \( -name settings.gradle.kts -o -name settings.gradle \) | head -1 | xargs dirname)
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-      - name: Fix Java and Kotlin JVM target
+      - name: Force JVM 17
         run: |
-          find "$PROJECT_DIR" -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -print0 | while IFS= read -r -d '' file; do
-            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
-            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
-            sed -i 's/jvmTarget *= *"1.8"/jvmTarget = "17"/g' "$file"
-            sed -i 's/jvmTarget *= *'\''1.8'\''/jvmTarget = '\''17'\''/g' "$file"
-            sed -i 's/sourceCompatibility *= *JavaVersion.VERSION_1_8/sourceCompatibility = JavaVersion.VERSION_17/g' "$file"
-            sed -i 's/targetCompatibility *= *JavaVersion.VERSION_1_8/targetCompatibility = JavaVersion.VERSION_17/g' "$file"
-          done
-
-      - name: Force Java 17 for Gradle
-        run: |
-          mkdir -p "$PROJECT_DIR/gradle"
-          cat > "$PROJECT_DIR/gradle/gradle.properties" <<'EOF'
-          org.gradle.java.home=/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.*/x64
+          cat > "$PROJECT_DIR/force-jvm.gradle" <<'EOF'
+          allprojects {
+              tasks.withType(JavaCompile).configureEach {
+                  options.release.set(17)
+              }
+              tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                  kotlinOptions.jvmTarget = "17"
+              }
+          }
           EOF
 
       - name: Build APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          gradle :app:assembleDebug --no-daemon
+          gradle -I force-jvm.gradle :app:assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
