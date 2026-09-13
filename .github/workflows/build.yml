@@ -44,7 +44,8 @@ jobs:
           echo "Using: $APP_GRADLE"
           sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$APP_GRADLE"
           sed -i 's/"1.8"/"17"/g' "$APP_GRADLE"
-          sed -i 's/1\.8/17/g' "$APP_GRADLE" 
+          sed -i 's/1\.8/17/g' "$APP_GRADLE"
+
       - name: Build APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: gradle :app:assembleDebug --no-daemon
